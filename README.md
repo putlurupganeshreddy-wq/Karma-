@@ -1,37 +1,19 @@
 # KARMA — Turn mistakes into realizations.
-A private, event-based mistake and learning diary. **Not** a daily diary: no streaks, no reminders, no pressure.
-
-## Features
-Dashboard with local date/time and a time-aware quote (52 quotes, no immediate repeats) · record mistakes by text, voice (start/pause/resume/stop/playback/delete), photos and PDFs · categories (optional) · reflection (what happened, my mistake, realization, lesson, next time) · Mistakes, Realize and event-based Diary pages · search · favorites · PDF export via the browser print dialog ("Save as PDF") · Data export/import with merge or replace and duplicate protection · delete-all.
-
-## Stack
-Plain HTML/CSS/JavaScript (no build step). Data is stored **only on your device** in the browser's IndexedDB. Nothing is uploaded.
-
-## Structure
-`index.html` · `css/style.css` · `js/app.js` (UI, storage, reflection, import/export) · `assets/logo.png` · `.env.example`
-
-## Run locally
-Microphone access needs `localhost` or HTTPS.
-```
-npm start      # or: npx serve .   /   python3 -m http.server 5173
-```
-Open http://localhost:5173. Deploy the folder to any static host (GitHub Pages, Netlify, Vercel).
-
-## Reflection ("AI") configuration
-The reflection is generated **locally** by simple rules from the user's own words; it never invents details and never overwrites the original text. No API key is used. `.env.example` reserves `AI_API_KEY` and `SPEECH_TO_TEXT_API_KEY` for a future server integration; they are not read by this static app.
-
-## Voice transcription
-Audio is recorded and stored. Automatic transcription is not connected; type or paste a transcript into the transcript field.
-
-## Backup format
-`KARMA_Backup_YYYY-MM-DD.karma.json`: `{format:"karma-backup", version:1, exportedAt, entries:[…]}`. Each entry holds its text, dates, category, reflection, and its voice, photos and PDFs as base64 data URLs, so attachments stay linked to the right entry. One portable file, no ZIP needed.
-
-## Restore
-Data → Import → choose the file → review the preview → Merge (skips entries whose id already exists) or Replace (asks for confirmation).
-
-## GitHub
-```
-git init && git add . && git commit -m "KARMA" && git branch -M main
-git remote add origin <your-repo-url> && git push -u origin main
-```
-Clearing browser data deletes your diary: export backups regularly.
+Private, event-based mistake diary. Static app (GitHub Pages) + your own Supabase project for email-OTP login and permanent storage.
+## Files (all in the repo root, except the SQL)
+index.html · config.js · logo.png · sw.js · manifest-v2.webmanifest · icon-*.png · supabase/migrations/001_init.sql
+## Setup (once)
+1. Create a free project at supabase.com.
+2. SQL Editor → paste `supabase/migrations/001_init.sql` → Run.
+3. Authentication → Providers → Email: on. Authentication → Email Templates → "Magic Link" (and "Confirm signup"): include `{{ .Token }}` in the body so the 6-digit code is emailed. OTP length is 6, expiry is set under Providers → Email; keep `OTP_EXPIRY_SECONDS` in config.js equal to it. For reliable delivery set up custom SMTP (Authentication → SMTP).
+4. Project Settings → API: copy the Project URL and the `anon` public key into `config.js`. Never use the service_role key.
+5. Commit and let GitHub Pages redeploy.
+## Data safety
+Code (GitHub) and data (Supabase database + private storage bucket, plus a copy in the browser) are separate. Deploying never touches data. Schema changes are new files in `supabase/migrations/` (never DROP/TRUNCATE). The service worker cache version only affects app files. Logout keeps everything.
+Existing entries made before login are adopted by the first account that logs in on that device and uploaded.
+## Logo
+Replace `logo.png` (and `icon-192/512.png`, `icon-maskable-*.png` for the installed icon). Everything reads `logo.png` (path set in config.js).
+## Backup
+Data → Export → `KARMA_Backup_YYYY-MM-DD.karma.zip` (`karma.json` + `media/voice|photos|pdfs`). Import accepts `.karma.zip` and older `.karma.json`, with preview, merge (skips duplicate ids) or replace (confirmed).
+## Limits
+Sync is simple: entries missing on either side are copied; an entry edited on two devices keeps the local version; deleting on one device is applied to the cloud but other devices may re-upload their old copy.
